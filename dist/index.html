@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <header>
+    <title>API overview</title>
+</header>
+<body>
+    <h1>Overview of API</h1>
+    <p>This is a simple CRUD API designed to be implemented into a front end later on<br>
+        The table below will tell you about all our inside methods and how they work. 
+    </p>
+    <table>
+        <tr>
+            <th>Method</th>
+            <th>Route</th>
+            <th>Functionality</th>
+            <th>Response</th>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td>/</td>
+            <td>This is the first page that will generate when someone logs into the node server</td>
+            <td>Shows you this page.... if it works correctly</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td>/Users</td>
+            <td>This request will show all users in the in memory array</td>
+            <td><img src="../images/GetUser.PNG" alt="userpic"></td>
+        </tr>
+        <tr>
+            <td>Post</td>
+            <td>/Users</td>
+            <td>This request will allow you to add a in memory JSON object</td>
+            <td><img src="../images/PostUser.PNG" alt="userpost"></td>
+        </tr>
+        <tr>
+            <td>Patch</td>
+            <td>/Users/:userID</td>
+            <td>This request will allow you to update a user ID</td>
+            <td>Will send a JSON object of the requested userID that you can use to update an exhisting user</td>
+        </tr>
+        <tr>
+            <td>Delete</td>
+            <td>/Users/:userID</td>
+            <td>This request will allow you to delete a user based on userID</td>
+            <td>You will see a message saying the user has been deleted along wiht a status code for confirmation</td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td>/Users/:userID</td>
+            <td>This request will allow you to see the selected user in the user array</td>
+            <td>You will see the requested user along with there userID firstName lastName and emaila address</td>
+        </tr>
+    </table>
+</body>
+
+
+</html>

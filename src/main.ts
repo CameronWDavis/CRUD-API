@@ -1,3 +1,4 @@
+
 import express from 'express'; 
 import bodyparser from 'body-parser'; 
 import jwt from 'jsonwebtoken';
@@ -48,10 +49,16 @@ app.get('/Users', (req,res,next) =>{
 }
 );
 app.get('/Posts/:postId', (req,res,next) =>{
-    const postId = req.params;
-    let newId:number = +postId;
-
-    const found = postInfomration.find((postObj) => postObj.postId == newId);
+    const {postId}  = req.params;
+    let postToInt:number = parseInt(postId); 
+    let found = null; 
+    
+    if(postToInt != null)
+    {
+         found = postInfomration.find((postObj) => postObj.postId == postToInt);
+    }
+    
+   
     if(found){
     res.status(200).send(found);
     }
@@ -63,6 +70,7 @@ app.get('/Posts/:postId', (req,res,next) =>{
             }
         )
     }
+    
 });
 
 
@@ -232,18 +240,23 @@ app.post('/Users', (req,res,next) =>{
     "emailAddress":newUser.emailAddress
  }); 
 });
-
+//token generator
 app.get('/Users/:userId/:password', (req,res,next) => {
     let id = req.params.userId; 
     let secretPaswd = req.params.password; 
-
+    //get a user object for us to use in the file
     let found = userArray.find((User) => User.userId == id);
-    if (found?.password == secretPaswd && found != null)
+    if (found!.password == secretPaswd && found != null)
     {
+        //create the token
         let token = jwt.sign({
             exp: Math.floor((Date.now() / 1000) + (60 * 60)),
-            User
-        }, 'jrRice879');
+            data: {
+                userId: found?.userId,
+                name:found?.firstName
+            }
+        },'jrRice879')// create the token
+            
 
         res.send({token:token})
     }
@@ -254,7 +267,40 @@ app.get('/Users/:userId/:password', (req,res,next) => {
 
 
 
-app.listen(PORT);
+app.post('/Posts', (req,res,next) =>{
+    try{
+    if(req.headers['authorization']){
+        let verified:any = jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
+        let date:Date = new Date; 
+        if(verified){
+        let uID = verified.data.userId; 
+        let newPost = req.body;
+        let postID:number= postInfomration.length;
+        let postDate:Date = date;
+        let updateDate:Date = date;  
+        if(newPost.title == null || newPost.content == null || newPost.headerImage == null)
+        {
+            res.status(406).send(
+                {
+                    "message": "Unacceptable format must have title content and headerImage",
+                    "status": 406
+                }
+            )
+            return; 
+        }
+        
+        let newPoster = new postObj(postID, postDate ,newPost.title, newPost.content, uID, newPost.headerImage, updateDate);
+        postInfomration.push(newPoster);
+        res.status(201).send(newPoster); 
 
+
+    }else{res.status(401).send({message:"not authorized"});}
+}else{res.status(401).send({message:"not authorized"});}
+}catch{res.status(401).send({message:"not authorized"});}
+});
+
+
+
+app.listen(PORT);
 
 

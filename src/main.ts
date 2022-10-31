@@ -22,10 +22,11 @@ const postInfomration: postObj [] = [];
     I would recommend using the Public Folder approach for this instead of reading a file
     I dont think this is needed might switch to swagger.io for this 
 */
+/* THIS IS COMMENTED OUT BECAUSE I NEED TO WORK ON THIS AND PROJECT 3 did not require this. 
 app.get("/",(req,res,next) => {
     res.sendFile('index.html'); 
 });
-
+*/ 
 app.get('/Posts', (req,res,next) => {
     res.status(200).send(postInfomration); 
 }); 
@@ -34,20 +35,25 @@ app.get('/Posts', (req,res,next) => {
 app.get('/Users', (req,res,next) =>{
     try{
     if(req.headers['authorization']){
-        let verified =jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
-        if(verified){
-            res.status(200).send(userArray);
-        }else{
-        res.status(401).send({message:"not authorized"}); 
-    }
+        let cloneArray:any = userArray; 
+        for(let i = 0; i < userArray.length; i++){
+            delete cloneArray[i].password; 
+        }
+        let verified:any =jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
+        let found = userArray.find((User) => User.userId == verified.data.userId);
+
+        if(verified &&  found != null ){
+            res.status(200).send(cloneArray); 
+            
+        }else{res.status(401).send({message:"not authorized"});  }
     
     
-}
+}else{res.status(401).send({message:"not authorized"}); }
 }catch{
     res.status(401).send({message:"not authorized"}); 
     }
-}
-);
+});
+
 app.get('/Posts/:postId', (req,res,next) =>{
     const {postId}  = req.params;
     let postToInt:number = parseInt(postId); 
@@ -111,25 +117,30 @@ catch{res.status(401).send({message:"not authorized"});}
 //app delete method get index and delete user
 app.delete('/Users/:userId',(req,res,next) => {
     try{
+        let userIdentity = req.params.userId
         if(req.headers['authorization']){
-        let verified =jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
-        if(verified){
-    let index = userArray.findIndex(User => User.userId === req.params.userId);
-    if(index >= 0)
-    {
-        userArray.splice(index,1);
-        res.status(204).send();
-    }else{
-        res.status(404).send(
-            {
-                "message":"User was not found",
-                "status":"404"
+        let verified:any =jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
+        let userInformation = verified.data.userId; 
+        let found = userArray.find((User) => User.userId == userIdentity);
+        if(verified && userIdentity === userInformation && found != null){
+        let index = userArray.findIndex(User => User.userId === req.params.userId);
+        for(let i = 0; i < postInfomration.length; i++)
+        {
+            if(postInfomration[i].userId === userIdentity){
+                postInfomration.splice(i,1); 
+                continue; 
+                
             }
-        )
-    }
-}else{res.status(401).send({message:"not authorized"});}
-} 
-}catch{res.status(401).send({message:"not authorized"});}
+        }
+        
+        if(index >= 0 ){
+            userArray.splice(index,1); 
+            res.status(204).send();
+        }
+        
+        }else{res.status(401).send({message:"not authorized", status:"401"});}
+     }else{res.status(401).send({message:"not authorized", status:"401"});}
+}catch{res.status(401).send({message:"not authorized", status:"401"});}
     
 }); 
 
@@ -139,8 +150,11 @@ app.delete('/Users/:userId',(req,res,next) => {
 app.patch('/Users/:userId',(req,res,next) => {
     try{
         if(req.headers['authorization']){
-            let verified =jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
-        if(verified){
+            let id = req.params.userId; 
+            let verified:any =jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
+            let userInformation = verified.data.userId; 
+            let found = userArray.find((User) => User.userId == id);
+        if(verified && id == userInformation && found != null){
              let index = userArray.findIndex(User => User.userId === req.params.userId);
             if(index >= 0){
         
@@ -156,6 +170,17 @@ app.patch('/Users/:userId',(req,res,next) => {
                    
                 }
                 if(updateUser.emailAddress){
+                    const test: boolean = expression.test(updateUser.emailAddress);
+                        if(test == false)
+                            {
+                                res.status(406).send(
+                                {
+                                    "message": "Unacceptable email",
+                                    "status": 406
+                                }
+                                        )
+                                return; 
+                                 }
                     userArray[index].emailAddress = updateUser.emailAddress;
                    
                 }
@@ -172,11 +197,10 @@ app.patch('/Users/:userId',(req,res,next) => {
                         "status":"404"
                     }
                 )}
-        }//end if
+        }else{res.status(401).send({message:"not authorized", status:"401"});}
+    }else{res.status(401).send({message:"not authorized", status:"401"});}
 
-    }else{res.status(401).send({message:"not authorized"});}
-
-}catch{res.status(401).send({message:"not authorized"});}
+}catch{res.status(401).send({message:"not authorized", status:"401"});}
 });
 
 
@@ -246,8 +270,10 @@ app.get('/Users/:userId/:password', (req,res,next) => {
     let secretPaswd = req.params.password; 
     //get a user object for us to use in the file
     let found = userArray.find((User) => User.userId == id);
-    if (found!.password == secretPaswd && found != null)
+    try{
+    if (found!.password == secretPaswd)
     {
+        if(found!.userId == id){
         //create the token
         let token = jwt.sign({
             exp: Math.floor((Date.now() / 1000) + (60 * 60)),
@@ -259,12 +285,62 @@ app.get('/Users/:userId/:password', (req,res,next) => {
             
 
         res.send({token:token})
+    }else{
+        res.status(401).send({message: "invalid username"});
+    }
     }
     else{
-        res.status(401).send({message: "invalid username and password"});
+        res.status(401).send({message: "invalid password"});
     }
+}catch{res.status(401).send({message:"not authorized"});}
 }); 
+//update a post for a user
+app.patch('/Posts/:postId',(req,res,next) =>{
+    try{
+        let postID:string = req.params.postId;
+        let postToInt:number = parseInt(postID); 
+        if(req.headers['authorization']){
+            let verified:any =jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
+            let userInformation = verified.data.userId; 
+            let foundPost = postInfomration.find((postObj) => postObj.postId == postToInt);
+            
+        if(verified && foundPost?.userId == userInformation){
+                
+             let index = postInfomration.findIndex((postObj) => postObj.postId === postToInt);
+             if(postInfomration[index].userId == userInformation){
+            if(index >= 0 ){
+        
+                let updatePost = req.body; 
+               
+                //if statements for updating post
+                
+                 if(updatePost.content){ 
+                        postInfomration[index].content = updatePost.content;
+                        postInfomration[index].lastUpdated = new Date; 
+                    }
+                if(updatePost.headerImage){
+                    postInfomration[index].headerImage = updatePost.headerImage;
+                    postInfomration[index].lastUpdated = new Date; 
+                }
+                
+                
+                res.status(200).send(postInfomration[index]);
+            }
+            else{
+                res.status(404).send(
+                    {
+                        "message":"User was not found",
+                        "status":"404"
+                    }
+                )}}else{//statement for making sure UserID matches the one in the token
+                    res.status(401).send({message:"not authorized"}); 
+                }
+        }else{res.status(401).send({message:"not authorized"});}
 
+    }else{res.status(401).send({message:"not authorized"});}
+
+}catch{res.status(401).send({message:"not authorized"});}
+});
 
 
 app.post('/Posts', (req,res,next) =>{
@@ -272,7 +348,8 @@ app.post('/Posts', (req,res,next) =>{
     if(req.headers['authorization']){
         let verified:any = jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
         let date:Date = new Date; 
-        if(verified){
+        let found = userArray.find((User) => User.userId == verified.data.userId);
+        if(verified && verified.data.userId == found?.userId ){
         let uID = verified.data.userId; 
         let newPost = req.body;
         let postID:number= postInfomration.length;
@@ -299,6 +376,46 @@ app.post('/Posts', (req,res,next) =>{
 }catch{res.status(401).send({message:"not authorized"});}
 });
 
+//return all posts for a user based on userID
+app.get('/Posts/User/:userID',(req,res,next) => {
+    let finder = req.params.userID; 
+    let allValues = []; 
+    for(let i = 0; i < postInfomration.length; i++){
+        if(finder == postInfomration[i].userId)
+        {
+            allValues.push(postInfomration[i]); 
+        }
+    }
+    res.send(allValues);
+}); 
+
+//method to delete a post 
+app.delete('/Posts/:postId', (req,res,next) => {
+try{
+    let idPost = req.params.postId;
+    let postToInt:number = parseInt(idPost); 
+    if(req.headers['authorization']){
+        let verified:any = jwt.verify(req.headers['authorization'].replace('Bearer ',''),'jrRice879');
+        let userInformation = verified.data.userId; 
+        if(verified){
+        let index = postInfomration.findIndex(postObj => postObj.postId === postToInt);
+        if(postInfomration[index].userId == userInformation){
+        if(index >= 0 )
+        {
+            postInfomration.splice(index,1);
+            res.status(204).send();
+        }else{
+            res.status(404).send(
+                {
+                    "message":"post was not found",
+                    "status":"404"
+                }
+            )
+        }}else{res.status(401).send({message:"not authorized"});}//check if user ID matches post ID
+    }
+    }else{res.status(401).send({message:"not authorized"});}
+}catch{res.status(401).send({message:"not authorized"});}//end try catch
+}); 
 
 
 app.listen(PORT);

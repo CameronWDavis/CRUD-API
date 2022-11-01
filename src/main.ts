@@ -417,7 +417,4 @@ try{
 }catch{res.status(401).send({message:"not authorized"});}//end try catch
 }); 
 
-
 app.listen(PORT);
-
-

@@ -4,6 +4,7 @@ import bodyparser from 'body-parser';
 import jwt from 'jsonwebtoken';
 import { User } from './model/userModel';
 import { postObj } from './model/postModel';
+import map
 
 //constants my functions use 
 const app = express();
